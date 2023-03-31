@@ -1,0 +1,157 @@
+--CONSULTA 1
+ select * from "EMPLOYEES"; 
+
+--CONSULTA 2
+select distinct city from "EMPLOYEES";
+
+--CONSULTA 3
+SELECT
+    empleados.firstname AS "NOMBRE EMPLEADO",
+    empleados.lastname  AS "APELLIDOS EMPLEADO",
+    jefaturas.firstname AS "NOMBRE JEFATURA",
+    jefaturas.lastname  AS "APELLIDO JEFATURA"
+FROM
+         "EMPLOYEES" empleados
+    INNER JOIN "EMPLOYEES" jefaturas ON empleados.reports_to = jefaturas.employee_id
+ORDER BY
+    jefaturas.firstname;
+
+--CONSULTA 4
+SELECT PRODUCT_NAME, UNIT_PRICE FROM "PRODUCTS";
+
+--CONSULTA 5
+SELECT PRODUCT_NAME, UNITS_ON_ORDER FROM "PRODUCTS" WHERE UNITS_ON_ORDER>50;
+
+
+--CONSULTA 6  
+SELECT * FROM "CUSTOMERS" WHERE CONTACT_TITLE='Owner';
+
+--CONSULTA 7
+SELECT * FROM "PRODUCTS"  ORDER BY unit_price DESC;
+
+--CONSULTA 8
+--OPCION 1
+SELECT
+    "CUSTOMERS".company_name,
+    "ORDERS".order_id,
+    SUM("ORDER_DETAILS".unit_price * "ORDER_DETAILS".quantity) AS total
+FROM
+         "ORDERS"
+    INNER JOIN "CUSTOMERS" ON "CUSTOMERS".customer_id = "ORDERS".customer_id
+    INNER JOIN "ORDER_DETAILS" ON "ORDERS".order_id = "ORDER_DETAILS".order_id
+GROUP BY
+    "CUSTOMERS".company_name,
+    "ORDERS".order_id
+ORDER BY
+    "CUSTOMERS".company_name;
+--OPCION 2
+--COSNULTA 8
+SELECT
+    "CUSTOMERS".company_name,
+    SUM("ORDER_DETAILS".unit_price * "ORDER_DETAILS".quantity) AS total
+FROM
+         "ORDERS"
+    INNER JOIN "CUSTOMERS" ON "CUSTOMERS".customer_id = "ORDERS".customer_id
+    INNER JOIN "ORDER_DETAILS" ON "ORDERS".order_id = "ORDER_DETAILS".order_id
+GROUP BY
+    "CUSTOMERS".company_name
+ORDER BY
+    "CUSTOMERS".company_name;
+
+--CONSULTA 9
+SELECT
+    "ORDERS".order_id,
+    "ORDERS".order_date,
+    "CUSTOMERS".customer_id,
+    "CUSTOMERS".company_name,
+    "EMPLOYEES".employee_id,
+    "EMPLOYEES".firstname,
+    "ORDERS".required_date,
+    "ORDERS".shipped_date,
+    nvl("SHIPPERS".company_name, ' ')                         AS company_name,
+    "ORDERS".ship_name,
+    "ORDERS".ship_address,
+    "ORDERS".ship_city,
+    "ORDERS".ship_region,
+    "ORDERS".ship_postal_code,
+    "ORDERS".ship_country,
+    total_sum.total                                           AS total_order,
+    "PRODUCTS".product_id,
+    "PRODUCTS".product_name,
+    "ORDER_DETAILS".unit_price,
+    "ORDER_DETAILS".quantity,
+    ( "ORDER_DETAILS".unit_price * "ORDER_DETAILS".quantity ) AS total_detail
+FROM
+         "ORDERS"
+    INNER JOIN "CUSTOMERS" ON "CUSTOMERS".customer_id = "ORDERS".customer_id
+    INNER JOIN "EMPLOYEES" ON "EMPLOYEES".employee_id = "ORDERS".employee_id
+    INNER JOIN "ORDER_DETAILS" ON "ORDERS".order_id = "ORDER_DETAILS".order_id
+    INNER JOIN "PRODUCTS" ON "PRODUCTS".product_id = "ORDER_DETAILS".product_id
+    INNER JOIN (
+        SELECT
+            SUM("ORDER_DETAILS".unit_price * "ORDER_DETAILS".quantity) AS total,
+            "ORDER_DETAILS".order_id
+        FROM
+            "ORDER_DETAILS"
+        GROUP BY
+            "ORDER_DETAILS".order_id
+    ) total_sum ON total_sum.order_id = "ORDERS".order_id
+    LEFT JOIN "SHIPPERS" ON "SHIPPERS".shipper_id = "ORDERS".ship_via
+WHERE
+    "ORDERS".order_id = 10514;
+
+--CONSULTA 10
+SELECT ORDER_ID, FREIGHT, FREIGHT * 0.10 AS FRIGHT_TAX FROM "ORDERS" WHERE FREIGHT>=500;
+
+--CONSULTA 11
+SELECT
+    "ORDERS".order_id,
+    "ORDERS".order_date,
+    "CUSTOMERS".customer_id,
+    "CUSTOMERS".company_name,
+    "EMPLOYEES".employee_id,
+    "EMPLOYEES".firstname,
+    "EMPLOYEES".lastname
+FROM
+         "ORDERS"
+    INNER JOIN "CUSTOMERS" ON "CUSTOMERS".customer_id = "ORDERS".customer_id
+    INNER JOIN "EMPLOYEES" ON "EMPLOYEES".employee_id = "ORDERS".employee_id
+WHERE
+        "ORDERS".order_date > '01-01-1998'
+    AND "ORDERS".required_date > "ORDERS".shipped_date
+ORDER BY
+    "CUSTOMERS".company_name;
+
+--CONSULTA 12 ??
+SELECT ORDER_ID, CANT FROM (SELECT ORDER_ID, SUM(QUANTITY) AS CANT FROM "ORDER_DETAILS" GROUP BY ORDER_ID) NEW_DT 
+WHERE CANT < 200
+AND rownum <= 5;
+
+--CONSULTA 13
+SELECT COMPANY_NAME, CONTACT_NAME, CONTACT_TITLE, COUNTRY, PHONE FROM "CUSTOMERS" 
+WHERE "CUSTOMERS".CUSTOMER_ID NOT IN(SELECT CUSTOMER_ID FROM "ORDERS" WHERE EXTRACT(YEAR FROM ORDER_DATE)!= '1998');
+
+--CONSULTA 14
+SELECT DISTINCT COMPANY_NAME, CONTACT_NAME, CONTACT_TITLE, COUNTRY, PHONE FROM 
+(SELECT SUM("ORDER_DETAILS".UNIT_PRICE * "ORDER_DETAILS".QUANTITY) AS TOTAL, "ORDERS".ORDER_ID, "ORDERS".CUSTOMER_ID FROM "ORDERS" 
+INNER JOIN "ORDER_DETAILS" ON "ORDERS".ORDER_ID="ORDER_DETAILS".ORDER_ID
+WHERE EXTRACT(YEAR FROM ORDER_DATE) = '1997' 
+GROUP BY "ORDERS".ORDER_ID, "ORDERS".CUSTOMER_ID) TBL1
+INNER JOIN "CUSTOMERS" ON "CUSTOMERS".CUSTOMER_ID=TBL1.CUSTOMER_ID
+WHERE TOTAL >(
+SELECT AVG(TOTAL) FROM
+(SELECT SUM("ORDER_DETAILS".UNIT_PRICE * "ORDER_DETAILS".QUANTITY) AS TOTAL FROM "ORDERS" 
+INNER JOIN "ORDER_DETAILS" ON "ORDERS".ORDER_ID="ORDER_DETAILS".ORDER_ID
+WHERE EXTRACT(YEAR FROM ORDER_DATE) = '1997' 
+GROUP BY "ORDERS".ORDER_ID));
+ORDER BY COMPANY_NAME;
+
+--CONSULTA 15 
+SELECT "SHIPPERS".COMPANY_NAME, ORDER_ID, SHIPPED_DATE   FROM "ORDERS"
+LEFT JOIN "SHIPPERS" ON "SHIPPERS".SHIPPER_ID="ORDERS".SHIP_VIA
+GROUP BY "SHIPPERS".COMPANY_NAME, SHIPPED_DATE, ORDER_ID
+ORDER BY SHIPPED_DATE;
+--CONSULTA 15
+SELECT "SHIPPERS".COMPANY_NAME, ORDER_ID, SHIPPED_DATE   FROM "ORDERS"
+LEFT JOIN "SHIPPERS" ON "SHIPPERS".SHIPPER_ID="ORDERS".SHIP_VIA
+GROUP BY "SHIPPERS".COMPANY_NAME, SHIPPED_DATE, ORDER_ID; 
